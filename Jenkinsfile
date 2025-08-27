@@ -2,45 +2,26 @@ pipeline {
     agent any
 
     tools {
-        // Asegúrate de que este nombre coincida con la configuración de Maven en Jenkins
-        maven 'Maven_3.8.6'
+        // Install the Maven version configured as "M3" and add it to the path.
+        maven "Maven"
     }
 
     stages {
-        stage('Limpiar y Compilar') {
+        stage('Build') {
             steps {
-                sh "mvn clean compile"
+                // Run Maven on a Unix agent.
+                sh "mvn -Dmaven.test.failure.ignore=true clean package"
             }
-        }
 
-        stage('Pruebas Unitarias') {
-            steps {
-                sh "mvn test"
+            post {
+                // If Maven was able to run the tests, even if some of the test
+                // failed, record the test results and archive the jar file.
+                success {
+                    junit '**/target/surefire-reports/TEST-*.xml'
+                    jacoco()
+                    archiveArtifacts '**/target/*.jar'
+                }
             }
-        }
-
-        stage('Analizar Cobertura de Código (JaCoCo)') {
-            steps {
-                sh "mvn jacoco:report"
-            }
-        }
-
-        stage('Empaquetar') {
-            steps {
-                sh "mvn package"
-            }
-        }
-    }
-
-    post {
-        always {
-            echo 'Fin del Pipeline.'
-        }
-        success {
-            echo 'El build fue exitoso. ¡Excelente trabajo!'
-        }
-        failure {
-            echo 'El build falló. Revisa los logs para depurar.'
         }
     }
 }
